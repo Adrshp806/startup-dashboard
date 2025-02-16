@@ -72,19 +72,51 @@ def overall_analysis():
         st.metric('Total Startups Funded', str(num_startup))
         st.markdown('</div>', unsafe_allow_html=True)
 
+
+    # Title
     st.markdown('<p class="main-title">📊 MoM Graph</p>', unsafe_allow_html=True)
-    seelct_option = st.selectbox('Select Type',['Total','count'])
-    if seelct_option == 'Total':
-        temp_df = df.groupby(['month', 'year'])['amount'].sum().reset_index()
+
+    # Year selection dropdown
+    selected_year = st.selectbox('Select Year', sorted(df['year'].unique(), reverse=True))
+
+    # Type selection dropdown (Total vs. Count)
+    select_option = st.selectbox('Select Type', ['Total', 'Count'])
+
+    # Filter data by selected year
+    df_filtered = df[df['year'] == selected_year]
+
+    # Group data based on user selection
+    if select_option == 'Total':
+        temp_df = df_filtered.groupby(['month', 'year'])['amount'].sum().reset_index()
     else:
-        temp_df = df.groupby(['month', 'year'])['amount'].count().reset_index()
+        temp_df = df_filtered.groupby(['month', 'year'])['amount'].count().reset_index()
+
+    # Create 'x_axis' column (Month-Year format)
     temp_df['x_axis'] = temp_df['month'].astype(str) + '-' + temp_df['year'].astype(str)
-    fig5, ax5 = plt.subplots(figsize=(6,6))
-    ax5.plot(temp_df['x_axis'], temp_df['amount'], color='#2E86C1')
-    ax5.set_xticklabels(temp_df['x_axis'], rotation=90, ha='right', fontsize=10)
-    ax5.set_ylabel('Total Investment', fontsize=12, fontweight='bold', color='#154360')
-    ax5.set_xlabel('Month-Year', fontsize=12, fontweight='bold', color='#154360')
-    st.pyplot(fig5, use_container_width=True)
+
+    # Plot with Plotly
+    fig = px.line(
+        temp_df, 
+        x='x_axis', 
+        y='amount', 
+        markers=True, 
+        title=f'Month-over-Month Investment ({selected_year})',
+        labels={'x_axis': 'Month-Year', 'amount': 'Total Investment'},
+        line_shape='spline'
+    )
+
+    # Improve layout
+    fig.update_layout(
+        xaxis_tickangle=-45,
+        xaxis_title='Month-Year',
+        yaxis_title='Total Investment',
+        margin=dict(l=50, r=50, t=50, b=50),
+        hovermode='x'
+    )
+
+    # Show plot in Streamlit
+    st.plotly_chart(fig, use_container_width=True)
+
     
     
     sector_sum = df.groupby('vertical')['amount'].sum().sort_values(ascending=False).head(5)
