@@ -23,8 +23,7 @@ df['month'] = df['date'].dt.month
 df['amount'] = pd.to_numeric(df['amount'], errors='coerce')  # Ensure 'amount' is numeric
 
 
-# Function to overall analyiss
-
+# Function for overall analysis
 def overall_analysis():
     st.markdown("""
         <style>
@@ -46,157 +45,85 @@ def overall_analysis():
     
     st.markdown('<p class="main-title">📊 Overall Analysis</p>', unsafe_allow_html=True)
     
-    Total = round(df['amount'].sum())
-    max_funding = df.groupby('startup')['amount'].sum().sort_values(ascending=False).head(1).values[0]
-    avg_funding = df.groupby('startup')['amount'].sum().mean()
-    num_startup = df['startup'].nunique()
+    # Year selection filter (applies to all graphs)
+    selected_year = st.selectbox('Select Year', sorted(df['year'].unique(), reverse=True))
+    df_filtered = df[df['year'] == selected_year]
+    
+    # Key metrics
+    total_investment = round(df_filtered['amount'].sum())
+    max_funding = df_filtered.groupby('startup')['amount'].sum().max()
+    avg_funding = df_filtered.groupby('startup')['amount'].sum().mean()
+    num_startup = df_filtered['startup'].nunique()
     
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.markdown('<div class="metric-box">', unsafe_allow_html=True)
         st.metric('Max Funding', f"₹{round(max_funding)} Cr")
-        st.markdown('</div>', unsafe_allow_html=True)
-    
     with col2:
-        st.markdown('<div class="metric-box">', unsafe_allow_html=True)
-        st.metric('Total Investment', f"₹{round(Total)}Cr")
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.metric('Total Investment', f"₹{round(total_investment)} Cr")
     with col3:
-        st.markdown('<div class="metric-box">', unsafe_allow_html=True)
         st.metric('Average Funding', f"₹{round(avg_funding)} Cr")
-        st.markdown('</div>', unsafe_allow_html=True)
-    
     with col4:
-        st.markdown('<div class="metric-box">', unsafe_allow_html=True)
         st.metric('Total Startups Funded', str(num_startup))
-        st.markdown('</div>', unsafe_allow_html=True)
-
-
-    # Title
+    
+    # Month-over-Month Graph
     st.markdown('<p class="main-title">📊 MoM Graph</p>', unsafe_allow_html=True)
-
-    # Year selection dropdown
-    selected_year = st.selectbox('Select Year', sorted(df['year'].unique(), reverse=True))
-
-    # Type selection dropdown (Total vs. Count)
-    select_option = st.selectbox('Select Type', ['Total', 'Count'])
-
-    # Filter data by selected year
-    df_filtered = df[df['year'] == selected_year]
-
-    # Group data based on user selection
-    if select_option == 'Total':
-        temp_df = df_filtered.groupby(['month', 'year'])['amount'].sum().reset_index()
+    select_option = st.radio('Select Type', ['Total Investment', 'Count of Investments'], horizontal=True)
+    
+    if select_option == 'Total Investment':
+        temp_df = df_filtered.groupby('month')['amount'].sum().reset_index()
     else:
-        temp_df = df_filtered.groupby(['month', 'year'])['amount'].count().reset_index()
-
-    # Create 'x_axis' column (Month-Year format)
-    temp_df['x_axis'] = temp_df['month'].astype(str) + '-' + temp_df['year'].astype(str)
-
-    # Plot with Plotly
+        temp_df = df_filtered.groupby('month')['amount'].count().reset_index()
+    
+    temp_df['Month'] = temp_df['month'].astype(str)
+    
     fig = px.line(
-        temp_df, 
-        x='x_axis', 
-        y='amount', 
-        markers=True, 
-        title=f'Month-over-Month Investment ({selected_year})',
-        labels={'x_axis': 'Month-Year', 'amount': 'Total Investment'},
+        temp_df, x='Month', y='amount', markers=True,
+        title=f'Month-over-Month {select_option} ({selected_year})',
+        labels={'Month': 'Month', 'amount': select_option},
         line_shape='spline'
     )
-
-    # Improve layout
-    fig.update_layout(
-        xaxis_tickangle=-45,
-        xaxis_title='Month-Year',
-        yaxis_title='Total Investment',
-        margin=dict(l=50, r=50, t=50, b=50),
-        hovermode='x'
-    )
-
-    # Show plot in Streamlit
+    fig.update_layout(xaxis_tickangle=-45, hovermode='x')
     st.plotly_chart(fig, use_container_width=True)
-
     
+    # Investment Distribution by Sector
+    st.markdown('<p class="main-title">📊 Investment by Sector</p>', unsafe_allow_html=True)
+    sector_sum = df_filtered.groupby('vertical')['amount'].sum().nlargest(5)
+    fig_sector = px.pie(
+        sector_sum, names=sector_sum.index, values=sector_sum.values, title='Top 5 Sectors by Investment',
+        hole=0.4, color_discrete_sequence=px.colors.qualitative.Set2
+    )
+    st.plotly_chart(fig_sector, use_container_width=True)
     
-    sector_sum = df.groupby('vertical')['amount'].sum().sort_values(ascending=False).head(5)
-    st.markdown('<p class="section-title">📊 Investment Distribution by Sector</p>', unsafe_allow_html=True)
-    fig7, ax7 = plt.subplots(figsize=(6,6))
-    ax7.pie(sector_sum, labels=sector_sum.index, autopct='%1.1f%%', startangle=140, wedgeprops={'edgecolor': 'black'})
-    ax7.set_title('Investment by Sector', fontsize=14, fontweight='bold', color='#154360')
-    st.pyplot(fig7)
-
-    by_city = df.groupby('city')['amount'].sum().sort_values(ascending=False).head()
-    st.markdown('<p class="section-title">📈Total Amount Distribution by city</p>', unsafe_allow_html=True)
-    fig8, ax8 = plt.subplots(figsize=(6,6))
-    colors = ['#E74C3C', '#3498DB', '#2ECC71', '#F1C40F', '#9B59B6']
-    ax8.pie(by_city, labels=by_city.index, autopct='%1.1f%%', startangle=140, 
-            colors=colors, wedgeprops={'edgecolor': 'black'})
-
-    ax8.set_title('Investment by City', fontsize=14, fontweight='bold', color='#154360')
-
-    st.pyplot(fig8)
-
-    # Title
-    st.markdown('<p class="section-title">🔥 Funding Heatmap</p>', unsafe_allow_html=True)
-
-    # Year selection slider (optional, assuming you have a 'year' column)
-    selected_year = st.slider('Select Year', min_value=df['year'].min(), max_value=df['year'].max(), value=df['year'].max())
-
-    # Filter data by selected year
-    filtered_df = df[df['year'] == selected_year]
-
-    # Create pivot table
-    pivot_df = filtered_df.pivot_table(index='city', columns='month', values='amount', aggfunc='sum', fill_value=0)
-
-    # Reset index for Plotly
+    # Investment Distribution by City
+    st.markdown('<p class="main-title">📈 Investment by City</p>', unsafe_allow_html=True)
+    city_sum = df_filtered.groupby('city')['amount'].sum().nlargest(5)
+    fig_city = px.bar(
+        city_sum, x=city_sum.index, y=city_sum.values, text_auto=True,
+        title='Top 5 Cities by Investment', labels={'x': 'City', 'y': 'Total Investment'},
+        color=city_sum.values, color_continuous_scale='blues'
+    )
+    st.plotly_chart(fig_city, use_container_width=True)
+    
+    # Funding Heatmap
+    st.markdown('<p class="main-title">🔥 Funding Heatmap</p>', unsafe_allow_html=True)
+    pivot_df = df_filtered.pivot_table(index='city', columns='month', values='amount', aggfunc='sum', fill_value=0)
     pivot_df = pivot_df.reset_index().melt(id_vars='city', var_name='Month', value_name='Funding Amount')
-
-    # Plot interactive heatmap
-    fig = px.density_heatmap(
-        pivot_df, x='Month', y='city', z='Funding Amount', 
-        color_continuous_scale='YlGnBu', 
-        title=f'Funding Heatmap ({selected_year})', 
-        labels={'city': 'City', 'Month': 'Month', 'Funding Amount': 'Total Investment'},
-        height=600
+    
+    fig_heatmap = px.density_heatmap(
+        pivot_df, x='Month', y='city', z='Funding Amount',
+        color_continuous_scale='YlGnBu', title='Investment Heatmap', height=600
     )
-
-    # Improve layout
-    fig.update_layout(
-        xaxis_tickangle=-45,
-        margin=dict(l=50, r=50, t=50, b=50)
-    )
-
-    # Display plot
-    st.plotly_chart(fig, use_container_width=True)
-
-        # 📈 Top Investors Bar Chart
-    st.markdown('<p class="section-title">�� Top Investors</p>', unsafe_allow_html=True)
-    # Year selection slider (optional, assuming you have a 'year' column)
-    selected_years = st.slider('Select Years', min_value=df['year'].min(), max_value=df['year'].max(), value=df['year'].max())
-
-    # Filter data by selected year
-    filtered_df = df[df['year'] == selected_years]
-    top_investors = filtered_df.groupby('investors')['amount'].sum().sort_values(ascending=False).head(10).reset_index()
-
+    st.plotly_chart(fig_heatmap, use_container_width=True)
+    
+    # Top Investors
+    st.markdown('<p class="main-title">💰 Top Investors</p>', unsafe_allow_html=True)
+    top_investors = df_filtered.groupby('investors')['amount'].sum().nlargest(10).reset_index()
     fig_investors = px.bar(
-        top_investors,
-        x='investors',
-        y='amount',
-        title=f'Top Investors in {selected_years}',
-        labels={'investors': 'Investors', 'amount': 'Total Investment'},
-        color='amount',
-        text_auto=True
+        top_investors, x='investors', y='amount', text_auto=True,
+        title='Top 10 Investors', labels={'investors': 'Investors', 'amount': 'Total Investment'},
+        color='amount', color_continuous_scale='viridis'
     )
-
-    fig_investors.update_layout(
-        xaxis_tickangle=-45,
-        xaxis_title='Investor',
-        yaxis_title='Total Investment',
-        margin=dict(l=50, r=50, t=50, b=50),
-        hovermode='x'
-    )
- 
     st.plotly_chart(fig_investors, use_container_width=True)
 
 
