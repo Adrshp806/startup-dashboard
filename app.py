@@ -94,6 +94,17 @@ def overall_analysis():
     ax7.set_title('Investment by Sector', fontsize=14, fontweight='bold', color='#154360')
     st.pyplot(fig7)
 
+    by_city = df.groupby('city')['amount'].sum().sort_values(ascending=False).head()
+    st.markdown('<p class="section-title">📈Total Amount Distribution by city</p>', unsafe_allow_html=True)
+    fig8, ax8 = plt.subplots(figsize=(6,6))
+    colors = ['#E74C3C', '#3498DB', '#2ECC71', '#F1C40F', '#9B59B6']
+    ax8.pie(by_city, labels=by_city.index, autopct='%1.1f%%', startangle=140, 
+            colors=colors, wedgeprops={'edgecolor': 'black'})
+
+    ax8.set_title('Investment by City', fontsize=14, fontweight='bold', color='#154360')
+
+    st.pyplot(fig8)
+
 
 # Fuction to display investor details
 def load_investor_details(investor):
