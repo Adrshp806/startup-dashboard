@@ -4,9 +4,10 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import os
 import plotly.express as px
+from PIL import Image
 
 # Page Configurations
-st.set_page_config(page_title="Startup Funding Analysis", layout="wide")
+st.set_page_config(page_title="Startup Funding Analysis", layout="wide", page_icon="💼")
 
 # Load the dataset with a file existence check
 DATA_PATH = 'NoteBook/startup_funding_cleaned.csv'
@@ -21,6 +22,7 @@ df['date'] = pd.to_datetime(df['date'], format='mixed', errors='coerce')
 df['year'] = df['date'].dt.year  # Ensure year is an integer
 df['month'] = df['date'].dt.month
 df['amount'] = pd.to_numeric(df['amount'], errors='coerce')  # Ensure 'amount' is numeric
+
 
 def overall_analysis():
     st.title("📊 Overall Startup Funding Analysis")
@@ -78,6 +80,7 @@ def overall_analysis():
 
 def load_investor_details(investor):
     st.title(f"💰 Investment Details for {investor}")
+
     investor_df = df[df['investors'].str.contains(investor, na=False, regex=False)]
     
     st.subheader("📌 Most Recent Investments")
@@ -108,6 +111,7 @@ option = st.sidebar.radio('Select an option:', ['Overall Analysis', 'Startup', '
 if option == 'Overall Analysis':
     overall_analysis()
 elif option == 'Startup':
+    #st.image(startup_image, use_column_width=True)  # Display startup image
     startup_list = sorted(df['startup'].dropna().unique().tolist())
     selected_startup = st.sidebar.selectbox('🔍 Select a Startup', startup_list)
     if st.sidebar.button('Show Funding Details'):
