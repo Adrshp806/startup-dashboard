@@ -172,14 +172,14 @@ def overall_analysis():
 
         # 📈 Top Investors Bar Chart
     st.markdown('<p class="section-title">�� Top Investors</p>', unsafe_allow_html=True)
-    top_investors = df.groupby('investor')['amount'].sum().sort_values(ascending=False).head(10).reset_index()
+    top_investors = df.groupby('investors')['amount'].sum().sort_values(ascending=False).head(10).reset_index()
 
     fig_investors = px.bar(
         top_investors,
-        x='investor',
+        x='investors',
         y='amount',
         title=f'Top Investors in {selected_year}',
-        labels={'investor': 'Investor', 'amount': 'Total Investment'},
+        labels={'investors': 'Investors', 'amount': 'Total Investment'},
         color='amount',
         text_auto=True
     )
