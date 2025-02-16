@@ -19,7 +19,7 @@ This **Startup Funding Dashboard** is an interactive analytics tool built using 
 
 1️⃣ **Clone the repository**  
 ```bash
-git clone https://github.com/YOUR_GITHUB_USERNAME/startup-funding-dashboard.git
+git clone https://github.com/Adrshp806/startup-dashboard.git
 cd startup-funding-dashboard
 ```
 
