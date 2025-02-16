@@ -1,169 +1,80 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 import seaborn as sns
 import matplotlib.pyplot as plt
+import os
+from datetime import datetime
 
 # Page Configurations
-st.set_page_config(page_title="Startup Funding Analysis")
+st.set_page_config(page_title="Startup Funding Dashboard", layout="wide")
 
-# Load the dataset
-df = pd.read_csv('NoteBook/startup_funding_cleaned.csv')
+# Load Data
+@st.cache_data
+def load_data():
+    if not os.path.exists('NoteBook/startup_funding_cleaned.csv'):
+        st.error("Dataset not found! Please check the file path.")
+        return None
+    df = pd.read_csv('NoteBook/startup_funding_cleaned.csv')
+    df['date'] = pd.to_datetime(df['date'], format='mixed', errors='coerce')
+    df['year'] = df['date'].dt.year
+    df['month'] = df['date'].dt.month
+    df['amount'] = pd.to_numeric(df['amount'], errors='coerce')
+    return df
 
-# Custom Styling
-st.markdown("""
-    <style>
-        /* Sidebar Styling */
-        [data-testid="stSidebar"] {
-            background-color: #2E4053;
-            padding: 20px;
-        }
-        [data-testid="stSidebar"] h1 {
-            color: white;
-        }
-        /* Page Title */
-        .main-title {
-            font-size: 32px;
-            font-weight: bold;
-            color: #1A5276;
-            text-align: center;
-        }
-        /* Section Headers */
-        .section-title {
-            font-size: 22px;
-            font-weight: bold;
-            color: #2471A3;
-            margin-top: 20px;
-        }
-        /* Border around sections */
-        .styled-container {
-            border: 2px solid #3498DB;
-            padding: 20px;
-            border-radius: 10px;
-            background-color: #F8F9F9;
-            box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.1);
-        }
-    </style>
-""", unsafe_allow_html=True)
+df = load_data()
 
-# Function to display investor details
-def load_investor_details(investor):
-    st.markdown(f'<p class="main-title">Investment Details for {investor}</p>', unsafe_allow_html=True)
+if df is not None:
+    st.sidebar.title("Startup Funding Analysis")
+    option = st.sidebar.radio("Select an option:", ["Overall Analysis", "Startup", "Investor"])
 
-    # Recent Investments
-    last5_df = df[df['investors'].str.contains(investor)].head()[['date', 'startup', 'vertical', 'city', 'round', 'amount']]
-    st.markdown('<p class="section-title">📌 Most Recent Investments</p>', unsafe_allow_html=True)
-    st.dataframe(last5_df, height=200, hide_index=True)
+    if option == "Overall Analysis":
+        st.title("📊 Overall Startup Funding Analysis")
+        selected_year = st.sidebar.selectbox("Select Year", sorted(df['year'].dropna().unique(), reverse=True))
+        df_filtered = df[df['year'] == selected_year]
 
-    col1, col2 = st.columns(2)
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Total Investment", f"₹{df_filtered['amount'].sum():,.0f} Cr")
+        col2.metric("Max Funding", f"₹{df_filtered.groupby('startup')['amount'].sum().max():,.0f} Cr")
+        col3.metric("Avg Funding", f"₹{df_filtered.groupby('startup')['amount'].sum().mean():,.0f} Cr")
+        col4.metric("Total Startups Funded", df_filtered['startup'].nunique())
 
-    with col1:
-        biggest_investment = df[df['investors'].str.contains(investor)].groupby('startup')['amount'].sum().sort_values(ascending=False).head()
+        # Monthly Trends
+        st.subheader("📈 Monthly Funding Trend")
+        trend_option = st.radio("Select Trend Type", ["Total Investment", "Number of Investments"], horizontal=True)
+        trend_data = df_filtered.groupby('month')['amount'].sum().reset_index() if trend_option == "Total Investment" else df_filtered.groupby('month')['amount'].count().reset_index()
+        fig = px.line(trend_data, x='month', y='amount', markers=True, title=f"{trend_option} ({selected_year})", labels={'month': 'Month', 'amount': trend_option})
+        st.plotly_chart(fig, use_container_width=True)
 
-        st.markdown('<p class="section-title">💰 Top 5 Biggest Investments</p>', unsafe_allow_html=True)
+        # Sector-wise Investment
+        st.subheader("🏢 Top 5 Sectors by Investment")
+        sector_data = df_filtered.groupby('vertical')['amount'].sum().nlargest(5)
+        fig_sector = px.pie(sector_data, names=sector_data.index, values=sector_data.values, hole=0.4)
+        st.plotly_chart(fig_sector, use_container_width=True)
 
-        # Create figure for bar chart
-        fig, ax = plt.subplots(figsize=(6,6))
-        sns.barplot(x=biggest_investment.index, y=biggest_investment.values, palette="magma", ax=ax)
+        # City-wise Investment
+        st.subheader("🌍 Top 5 Cities by Investment")
+        city_data = df_filtered.groupby('city')['amount'].sum().nlargest(5)
+        fig_city = px.bar(city_data, x=city_data.index, y=city_data.values, text_auto=True)
+        st.plotly_chart(fig_city, use_container_width=True)
 
-        ax.set_xlabel('Startup', fontsize=12, fontweight='bold', color='#154360')
-        ax.set_ylabel('Investment Amount', fontsize=12, fontweight='bold', color='#154360')
-        ax.set_title('Top 5 Biggest Investments', fontsize=14, fontweight='bold', color='#154360')
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right', fontsize=10)
-        ax.grid(axis='y', linestyle='--', alpha=0.7)
+    elif option == "Startup":
+        startup_list = sorted(df['startup'].dropna().unique())
+        selected_startup = st.sidebar.selectbox("🔍 Select a Startup", startup_list)
+        btn1 = st.sidebar.button("Show Funding Details")
 
-        st.pyplot(fig)
+        if btn1:
+            st.title(f"🏢 Funding Details for {selected_startup}")
+            startup_data = df[df['startup'] == selected_startup][['date', 'investors', 'round', 'amount']]
+            st.dataframe(startup_data, height=300)
 
-    with col2:
-        vertical_series = df[df['investors'].str.contains(investor)].groupby('vertical')['amount'].sum().sort_values(ascending=False).head()
+    elif option == "Investor":
+        investor_list = sorted(set([i.strip() for sublist in df['investors'].dropna().str.split(',') for i in sublist]))
+        selected_investor = st.sidebar.selectbox("🔍 Select an Investor", investor_list)
+        btn2 = st.sidebar.button("Find Investment Details")
 
-        st.markdown('<p class="section-title">📊 Investment Distribution by Sector</p>', unsafe_allow_html=True)
-
-        fig, ax = plt.subplots(figsize=(6,6))
-        colors = ['#E74C3C', '#3498DB', '#2ECC71', '#F1C40F', '#9B59B6']
-        ax.pie(vertical_series, labels=vertical_series.index, autopct='%1.1f%%', startangle=140, 
-               colors=colors, wedgeprops={'edgecolor': 'black'})
-
-        ax.set_title('Investment by Sector', fontsize=14, fontweight='bold', color='#154360')
-
-        st.pyplot(fig)
-
-    col1, col2 = st.columns(2)
-    with col1:
-        raised_in_round = df[df['investors'].str.contains(investor)].groupby('round')['amount'].sum().sort_values(ascending=False).head()
-        st.markdown('<p class="section-title">📈Total Amount Distribution by Stage</p>', unsafe_allow_html=True)
-
-        fig2, ax = plt.subplots(figsize=(6,6))
-        colors = ['#E74C3C', '#3498DB', '#2ECC71', '#F1C40F', '#9B59B6']
-        ax.pie(raised_in_round, labels=raised_in_round.index, autopct='%1.1f%%', startangle=140, 
-               colors=colors, wedgeprops={'edgecolor': 'black'})
-
-        ax.set_title('Investment by Stages', fontsize=14, fontweight='bold', color='#154360')
-
-        st.pyplot(fig2)
-    with col2:
-         by_city = df[df['investors'].str.contains(investor)].groupby('city')['amount'].sum().sort_values(ascending=False).head()
-         st.markdown('<p class="section-title">📈Total Amount Distribution by city</p>', unsafe_allow_html=True)
-         fig3, ax = plt.subplots(figsize=(6,6))
-         colors = ['#E74C3C', '#3498DB', '#2ECC71', '#F1C40F', '#9B59B6']
-         ax.pie(by_city, labels=by_city.index, autopct='%1.1f%%', startangle=140, 
-                colors=colors, wedgeprops={'edgecolor': 'black'})
-
-         ax.set_title('Investment by City', fontsize=14, fontweight='bold', color='#154360')
-
-         st.pyplot(fig3)
-    
-    # Ensure 'date' column is in datetime format
-df['date'] = pd.to_datetime(df['date'], errors='coerce')
-df['year'] = df['date'].dt.year
-
-# Ensure 'amount' column is numeric
-df['amount'] = pd.to_numeric(df['amount'], errors='coerce')
-
-# Filter investments by the selected investor
-filtered_df = df[df['investors'].str.contains(selected_investor, na=False)]
-
-if not filtered_df.empty:
-    year_series = filtered_df.groupby('year')['amount'].sum()
-    
-    st.markdown('<p class="section-title">📈 Year-over-Year Investments</p>', unsafe_allow_html=True)
-    
-    fig4, ax2 = plt.subplots(figsize=(6,6))
-    ax2.plot(year_series.index, year_series.values, marker='o', linestyle='-', color='#3498DB')
-    ax2.set_xlabel('Year')
-    ax2.set_ylabel('Total Investment Amount')
-    ax2.set_title(f'Yearly Investments by {selected_investor}')
-    ax2.grid(True)
-
-    st.pyplot(fig4)
-else:
-    st.warning(f"No investment data available for {selected_investor}.")
-
-
-
-
-
-# Sidebar
-st.sidebar.markdown('<h1 style="color:white;">Startup Funding Analysis</h1>', unsafe_allow_html=True)
-
-option = st.sidebar.radio('Select an option:', ['Overall Analysis', 'StartUp', 'Investor'])
-
-if option == 'Overall Analysis':
-    st.markdown('<p class="main-title">📊 Overall Analysis</p>', unsafe_allow_html=True)
-
-elif option == 'StartUp':
-    startup_list = sorted(df['startup'].unique().tolist())
-    selected_startup = st.sidebar.selectbox('🔍 Select a StartUp', startup_list)
-    btn1 = st.sidebar.button('Show Funding Details')
-
-    if btn1:
-        st.markdown(f'<p class="main-title">🏢 Funding Details for {selected_startup}</p>', unsafe_allow_html=True)
-        startup_details = df[df['startup'] == selected_startup][['date', 'investors', 'round', 'amount']]
-        st.dataframe(startup_details, height=200, hide_index=True)
-
-else:
-    investor_list = sorted(set([inv.strip() for sublist in df['investors'].dropna().str.split(',') for inv in sublist]))
-    selected_investor = st.sidebar.selectbox('🔍 Select an Investor', investor_list)
-    btn2 = st.sidebar.button('Find Investment Details')
-
-    if btn2:
-        load_investor_details(selected_investor)
+        if btn2:
+            st.title(f"💰 Investment Details for {selected_investor}")
+            investor_data = df[df['investors'].str.contains(selected_investor, na=False, regex=False)][['date', 'startup', 'amount']]
+            st.dataframe(investor_data, height=300)
