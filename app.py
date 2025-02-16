@@ -170,6 +170,30 @@ def overall_analysis():
     # Display plot
     st.plotly_chart(fig, use_container_width=True)
 
+        # 📈 Top Investors Bar Chart
+    st.markdown('<p class="section-title">�� Top Investors</p>', unsafe_allow_html=True)
+    top_investors = df_filtered.groupby('investor')['amount'].sum().sort_values(ascending=False).head(10).reset_index()
+
+    fig_investors = px.bar(
+        top_investors,
+        x='investor',
+        y='amount',
+        title=f'Top Investors in {selected_year}',
+        labels={'investor': 'Investor', 'amount': 'Total Investment'},
+        color='amount',
+        text_auto=True
+    )
+
+    fig_investors.update_layout(
+        xaxis_tickangle=-45,
+        xaxis_title='Investor',
+        yaxis_title='Total Investment',
+        margin=dict(l=50, r=50, t=50, b=50),
+        hovermode='x'
+    )
+ 
+    st.plotly_chart(fig_investors, use_container_width=True)
+
 
 
 # Fuction to display investor details
