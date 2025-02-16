@@ -162,7 +162,7 @@ def load_investor_details(investor):
 
 
 # Sidebar
-st.sidebar.markdown('<h1 style="color:white;">Startup Funding Analysis</h1>', unsafe_allow_html=True)
+st.sidebar.markdown('<h1 style="color:black;">Startup Funding Analysis</h1>', unsafe_allow_html=True)
 option = st.sidebar.radio('Select an option:', ['Overall Analysis', 'StartUp', 'Investor'])
 
 if option == 'Overall Analysis':
