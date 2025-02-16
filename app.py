@@ -173,17 +173,17 @@ def overall_analysis():
         # 📈 Top Investors Bar Chart
     st.markdown('<p class="section-title">�� Top Investors</p>', unsafe_allow_html=True)
     # Year selection slider (optional, assuming you have a 'year' column)
-    selected_year = st.slider('Select Year', min_value=df['year'].min(), max_value=df['year'].max(), value=df['year'].max())
+    selected_years = st.slider('Select Years', min_value=df['year'].min(), max_value=df['year'].max(), value=df['year'].max())
 
     # Filter data by selected year
-    filtered_df = df[df['year'] == selected_year]
+    filtered_df = df[df['year'] == selected_years]
     top_investors = filtered_df.groupby('investors')['amount'].sum().sort_values(ascending=False).head(10).reset_index()
 
     fig_investors = px.bar(
         top_investors,
         x='investors',
         y='amount',
-        title=f'Top Investors in {selected_year}',
+        title=f'Top Investors in {selected_years}',
         labels={'investors': 'Investors', 'amount': 'Total Investment'},
         color='amount',
         text_auto=True
