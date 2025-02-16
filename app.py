@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import seaborn as sns
 import matplotlib.pyplot as plt
 import os
 
@@ -103,14 +102,27 @@ def load_investor_details(investor):
         biggest_investment = df[df['investors'].str.contains(investor, na=False, regex=False)].groupby('startup')['amount'].sum().sort_values(ascending=False).head()
         st.markdown('<p class="section-title">💰 Top 5 Biggest Investments</p>', unsafe_allow_html=True)
         
+        import matplotlib.pyplot as plt
+
         fig, ax = plt.subplots(figsize=(6,6))
-        sns.barplot(x=biggest_investment.index, y=biggest_investment.values, palette="magma", ax=ax)
+
+        # Use matplotlib's bar() function
+        ax.bar(biggest_investment.index, biggest_investment.values, color=plt.cm.magma(range(len(biggest_investment))))
+
+        # Customize x-tick labels
         ax.set_xticklabels(biggest_investment.index, rotation=45, ha='right', fontsize=10)
+
+        # Add labels and title
         ax.set_xlabel('Startup', fontsize=12, fontweight='bold', color='#154360')
         ax.set_ylabel('Investment Amount', fontsize=12, fontweight='bold', color='#154360')
         ax.set_title('Top 5 Biggest Investments', fontsize=14, fontweight='bold', color='#154360')
+
+        # Optional grid for better visualization
         ax.grid(axis='y', linestyle='--', alpha=0.7)
+
+        # Display the plot in Streamlit
         st.pyplot(fig)
+
     
     with col2:
         vertical_series = df[df['investors'].str.contains(investor, na=False, regex=False)].groupby('vertical')['amount'].sum().sort_values(ascending=False).head()

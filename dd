@@ -1,0 +1,54 @@
+import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Sample DataFrame
+df = pd.DataFrame({
+    'investors': ['AECAL', 'XYZ', 'AECAL', 'PQR', 'AECAL', 'AECAL', 'XYZ'],
+    'startup': ['Startup A', 'Startup B', 'Startup C', 'Startup D', 'Startup E', 'Startup F', 'Startup G'],
+    'vertical': ['Tech', 'Health', 'Finance', 'Retail', 'Tech', 'Finance', 'Health'],
+    'amount': [100, 200, 150, 250, 50, 300, 400]
+})
+
+# Define the investor name
+investor = 'AECAL'  # Replace with dynamic input if needed
+
+# Create two columns
+col1, col2 = st.columns(2)
+
+# **Biggest Investments Bar Chart**
+with col1:
+    biggest_investment = df[df['investors'].str.contains(investor)].groupby('startup')['amount'].sum().sort_values(ascending=False).head()
+    
+    st.subheader('Top 5 Biggest Investments')
+
+    # Create figure for bar chart
+    fig, ax = plt.subplots(figsize=(6, 4))
+    sns.barplot(x=biggest_investment.index, y=biggest_investment.values, palette="viridis", ax=ax)
+
+    # Beautify plot
+    ax.set_xlabel('Startup', fontsize=12)
+    ax.set_ylabel('Investment Amount', fontsize=12)
+    ax.set_title('Top 5 Biggest Investments', fontsize=14, fontweight='bold')
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right', fontsize=10)
+    ax.grid(axis='y', linestyle='--', alpha=0.7)
+
+    # Display in Streamlit
+    st.pyplot(fig)
+
+# **Investment Distribution Pie Chart**
+with col2:
+    vertical_series = df[df['investors'].str.contains(investor)].groupby('vertical')['amount'].sum()
+
+    st.subheader('Investment Distribution by Sector')
+
+    # Create figure for pie chart
+    fig, ax = plt.subplots(figsize=(6, 4))
+    ax.pie(vertical_series, labels=vertical_series.index, autopct='%1.1f%%', startangle=140, 
+           colors=plt.cm.Paired.colors, wedgeprops={'edgecolor': 'black'})
+
+    ax.set_title('Investment by Sector', fontsize=14, fontweight='bold')
+
+    # Display in Streamlit
+    st.pyplot(fig)
