@@ -81,7 +81,7 @@ def overall_analysis():
     temp_df['x_axis'] = temp_df['month'].astype(str) + '-' + temp_df['year'].astype(str)
     fig5, ax5 = plt.subplots(figsize=(6,6))
     ax5.plot(temp_df['x_axis'], temp_df['amount'], color='#2E86C1')
-    ax5.set_xticklabels(temp_df['x_axis'], rotation=45, ha='right', fontsize=10)
+    ax5.set_xticklabels(temp_df['x_axis'], rotation=90, ha='right', fontsize=10)
     ax5.set_ylabel('Total Investment', fontsize=12, fontweight='bold', color='#154360')
     ax5.set_xlabel('Month-Year', fontsize=12, fontweight='bold', color='#154360')
     st.pyplot(fig5, use_container_width=True)
