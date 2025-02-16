@@ -3,7 +3,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import os
-
+import plotly.express as px
 # Page Configurations
 st.set_page_config(page_title="Startup Funding Analysis")
 
@@ -105,13 +105,39 @@ def overall_analysis():
 
     st.pyplot(fig8)
 
+    # Title
+    st.markdown('<p class="section-title">🔥 Funding Heatmap</p>', unsafe_allow_html=True)
 
-    #Funding Heatmap
-    st.markdown('<p class="section-title">���️ Funding Heatmap</p>', unsafe_allow_html=True)
-    fig9, ax9 = plt.subplots(figsize=(6,6))
-    sns.heatmap(df.pivot_table(index='city', columns='month', values='amount', aggfunc='sum', fill_value=0), cmap='YlGnBu', ax=ax9)
-    ax9.set_title('Funding Heatmap', fontsize=14, fontweight='bold', color='#154360')
-    st.pyplot(fig9)
+    # Year selection slider (optional, assuming you have a 'year' column)
+    selected_year = st.slider('Select Year', min_value=df['year'].min(), max_value=df['year'].max(), value=df['year'].max())
+
+    # Filter data by selected year
+    filtered_df = df[df['year'] == selected_year]
+
+    # Create pivot table
+    pivot_df = filtered_df.pivot_table(index='city', columns='month', values='amount', aggfunc='sum', fill_value=0)
+
+    # Reset index for Plotly
+    pivot_df = pivot_df.reset_index().melt(id_vars='city', var_name='Month', value_name='Funding Amount')
+
+    # Plot interactive heatmap
+    fig = px.density_heatmap(
+        pivot_df, x='Month', y='city', z='Funding Amount', 
+        color_continuous_scale='YlGnBu', 
+        title=f'Funding Heatmap ({selected_year})', 
+        labels={'city': 'City', 'Month': 'Month', 'Funding Amount': 'Total Investment'},
+        height=600
+    )
+
+    # Improve layout
+    fig.update_layout(
+        xaxis_tickangle=-45,
+        margin=dict(l=50, r=50, t=50, b=50)
+    )
+
+    # Display plot
+    st.plotly_chart(fig, use_container_width=True)
+
 
 
 # Fuction to display investor details
