@@ -106,6 +106,14 @@ def overall_analysis():
     st.pyplot(fig8)
 
 
+    #Funding Heatmap
+    st.markdown('<p class="section-title">���️ Funding Heatmap</p>', unsafe_allow_html=True)
+    fig9, ax9 = plt.subplots(figsize=(6,6))
+    sns.heatmap(df.pivot_table(index='city', columns='month', values='amount', aggfunc='sum', fill_value=0), cmap='YlGnBu', ax=ax9)
+    ax9.set_title('Funding Heatmap', fontsize=14, fontweight='bold', color='#154360')
+    st.pyplot(fig9)
+
+
 # Fuction to display investor details
 def load_investor_details(investor):
     st.markdown(f'<p class="main-title">Investment Details for {investor}</p>', unsafe_allow_html=True)
